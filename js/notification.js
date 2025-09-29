@@ -12,7 +12,7 @@ function getIconPath(type) {
     }
 }
 
-export function showNotification(message, type = "info", duration = 5000) {
+export function showNotification(message, type, duration = 5000) {
   const container = document.querySelector(".notification-container");
   if (!container) return;
 
@@ -53,4 +53,5 @@ export function showNotification(message, type = "info", duration = 5000) {
   setTimeout(() => {
     item.remove();
   }, duration);
+
 }
