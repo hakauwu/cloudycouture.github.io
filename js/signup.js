@@ -96,7 +96,7 @@ if (googleButton) {
                 email: userCredential.user.email,
                 createdAt: new window.Date(),
             });
-            showNotification("Login successful!", "success");
+            showNotification("success", "Login successful!");
             setTimeout(() => {
                 if (window.hideLoader) window.hideLoader();
                 window.location.href = "./index.html";
@@ -105,22 +105,23 @@ if (googleButton) {
             const errorMessage = error.message;
             switch (errorMessage) {
                 case "auth/popup-closed-by-user":
-                    showNotification("error", "Popup closed before completing sign-in.", "error");
+                    showNotification("error", "Popup closed before completing sign-in.");
                     break;
                 case "auth/cancelled-popup-request":
-                    showNotification("error", "Only one popup request is allowed at one time.", "error");
+                    showNotification("error", "Only one popup request is allowed at one time.");
                     break;
                 case "auth/popup-blocked":
-                    showNotification("error", "Popup was blocked by the browser.", "error");
+                    showNotification("error", "Popup was blocked by the browser.");
                     break;
                 case "auth/operation-not-allowed":
-                    showNotification("error", "Operation not allowed. Please contact support.", "error");
+                    showNotification("error", "Operation not allowed. Please contact support.");
                     break;
                 default:
-                    showNotification("Login error: " + errorMessage, "error");
+                    showNotification("error", "Login error: " + errorMessage);
             }
         }
     });
 } else {
     console.error("Can not find .google-signup-button");
 }
+
