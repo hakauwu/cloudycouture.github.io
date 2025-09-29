@@ -22,19 +22,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const confirmPassword = form.confirmPassword.value;
 
         if (password !== confirmPassword) {
-            showNotification("warning", "The confirmation password does not match!");
+            showNotification("The confirmation password does not match!", "warning");
             return;
         }
 
         const usernameRegex = /^[A-Za-z0-9_]{3,20}$/;
         if (!usernameRegex.test(username)) {
-            showNotification("info", "Username must be 3–20 characters, only letters, numbers, or underscore.");
+            showNotification("Username must be 3–20 characters, only letters, numbers, or underscore.", "info");
             return;
         }
 
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
         if (!passwordRegex.test(password)) {
-            showNotification("info", "Password must include uppercase, lowercase, and a number.");
+            showNotification("Password must include uppercase, lowercase, and a number.", "info");
             return;
         }
 
@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const usernameRef = doc(db, "usernames", username.toLowerCase());
             const usernameSnap = await getDoc(usernameRef);
             if (usernameSnap.exists()) {
-                showNotification("error", "Username is already taken!");
+                showNotification("Username is already taken!", "error");
                 return;
             }
 
@@ -53,13 +53,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 await sendEmailVerification(user);
-                showNotification("success", "Registration successful. Check your email to verify your account!");
+                showNotification("Registration successful. Check your email to verify your account!", "success");
 
                 await signOut(auth);
                 form.reset();
                 window.location.href = "./login.html";
             } catch (err) {
-                showNotification("error", "Failed to send verification email. Please try again.");
+                showNotification("Failed to send verification email. Please try again.", "error");
             }
 
             window.location.href = "./login.html";
@@ -68,16 +68,16 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error(err.code, err.message);
             switch (err.code) {
                 case "auth/email-already-in-use":
-                    showNotification("error", "Email is already in use.");
+                    showNotification("Email is already in use.", "error");
                     break;
                 case "auth/invalid-email":
-                    showNotification("error", "Invalid email format.");
+                    showNotification("Invalid email format.", "error");
                     break;
                 case "auth/weak-password":
-                    showNotification("warning", "Your password is too weak.");
+                    showNotification("Your password is too weak.", "warning");
                     break;
                 default:
-                    showNotification("error", "Registration error: " + err.message);
+                    showNotification("Registration error: " + err.message, "error");
             }
         }
     });
@@ -96,7 +96,7 @@ if (googleButton) {
                 email: userCredential.user.email,
                 createdAt: new window.Date(),
             });
-            showNotification("success", "Login successful!");
+            showNotification("Login successful!", "success");
             setTimeout(() => {
                 if (window.hideLoader) window.hideLoader();
                 window.location.href = "./index.html";
@@ -105,23 +105,24 @@ if (googleButton) {
             const errorMessage = error.message;
             switch (errorMessage) {
                 case "auth/popup-closed-by-user":
-                    showNotification("error", "Popup closed before completing sign-in.");
+                    showNotification("Popup closed before completing sign-in.", "error");
                     break;
                 case "auth/cancelled-popup-request":
-                    showNotification("error", "Only one popup request is allowed at one time.");
+                    showNotification("Only one popup request is allowed at one time.", "error");
                     break;
                 case "auth/popup-blocked":
-                    showNotification("error", "Popup was blocked by the browser.");
+                    showNotification("Popup was blocked by the browser.", "error");
                     break;
                 case "auth/operation-not-allowed":
-                    showNotification("error", "Operation not allowed. Please contact support.");
+                    showNotification("Operation not allowed. Please contact support.", "error");
                     break;
                 default:
-                    showNotification("error", "Login error: " + errorMessage);
+                    showNotification("Login error: " + errorMessage, "error");
             }
         }
     });
 } else {
     console.error("Can not find .google-signup-button");
 }
+
 
