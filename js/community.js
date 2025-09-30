@@ -289,16 +289,23 @@ function renderNewfeed(postData) {
     }
 
     if (postData.title) {
-        cardHTML += `<p class="card2-title">${escapeHtml(postData.title)}</p>`;
+        const isMobile = window.innerWidth < 768;
+        const maxLength = isMobile ? 30 : postData.title.length;
+        const truncatedTitle = postData.title.length > maxLength
+            ? postData.title.substring(0, maxLength) + '...'
+            : postData.title;
+        cardHTML += `<p class="card2-title">${escapeHtml(truncatedTitle)}</p>`;
     }
 
-    if (postData.content) {
-        const truncatedContent = postData.content.length > 150 
-            ? postData.content.substring(0, 150) + '...' 
-            : postData.content;
-        cardHTML += `<p class="card2-body">${escapeHtml(truncatedContent)}</p>`;
-    }
-
+if (postData.content) {
+    const isMobile = window.innerWidth < 768;
+    const maxLength = isMobile ? 70 : 150;
+    const truncatedContent = postData.content.length > maxLength
+        ? postData.content.substring(0, maxLength) + '...'
+        : postData.content;
+    cardHTML += `<p class="card2-body">${escapeHtml(truncatedContent)}</p>`;
+}
+    
     const author = postData.author || 'Anonymous';
     const date = formatDate(postData.createdAt);
     const likes = postData.likedBy ? postData.likedBy.length : 0;

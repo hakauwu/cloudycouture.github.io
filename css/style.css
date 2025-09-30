@@ -35,6 +35,7 @@ header {
     gap: 2rem;
 }
 
+
 main {
     flex: 1;
 }
@@ -1060,4 +1061,31 @@ body.dark-mode {
   text-indent: 28px;
   width: 100%;
   opacity: 0;
+}
+
+@media (max-width: 768px) {
+    header {
+        align-items: flex-start;
+    }
+
+    .menu6 {
+        display: none
+    }
+
+    .acc-button{
+        margin-top: 35px;
+    }
+
+    .main-layout{
+        flex-direction: column;
+        padding: 40px;
+    }
+
+    .card1{
+        max-width:100%;
+    }
+
+    .card-footer{
+        margin: 0px;
+    }
 }

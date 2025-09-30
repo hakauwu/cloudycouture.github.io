@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
         if (!passwordRegex.test(password)) {
-            showNotification("Password must include uppercase, lowercase, and a number.", "info");
+            showNotification("Password must include uppercase, lowercase, and a number and must be at least 8 characters in length", "info");
             return;
         }
 
