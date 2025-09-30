@@ -8,7 +8,6 @@ import {
 import { auth } from "./firebase.js";
 import { showNotification } from "./notification.js";
 
-
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("login-form");
   if (!form) return console.error("Can not find form #login-form");
@@ -27,11 +26,18 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       if (window.showLoader) window.showLoader();
 
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const { user } = userCredential;
 
       if (!user.emailVerified) {
-        showNotification("Your email is not verified. Please check your inbox.", "info");
+        showNotification(
+          "Your email is not verified. Please check your inbox.",
+          "info"
+        );
         await sendEmailVerification(user);
         await signOut(auth);
         if (window.hideLoader) window.hideLoader();
@@ -52,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
       switch (err.code) {
         case "auth/user-not-found":
         case "auth/wrong-password":
+        case "auth/invalid-credential":
           showNotification("Incorrect email or password.", "error");
           break;
         case "auth/invalid-email":
@@ -77,6 +84,27 @@ googleButton.addEventListener("click", async () => {
     }, 1000);
   } catch (error) {
     const errorMessage = error.message;
-    showNotification("Login failed: " + errorMessage, "error");
+    switch (errorMessage) {
+      case "auth/popup-closed-by-user":
+        showNotification("Popup closed before completing sign-in.", "error");
+        break;
+      case "auth/cancelled-popup-request":
+        showNotification(
+          "Only one popup request is allowed at one time.",
+          "error"
+        );
+        break;
+      case "auth/popup-blocked":
+        showNotification("Popup was blocked by the browser.", "error");
+        break;
+      case "auth/operation-not-allowed":
+        showNotification(
+          "Operation not allowed. Please contact support.",
+          "error"
+        );
+        break;
+      default:
+        showNotification("Login error: " + errorMessage, "error");
+    }
   }
 });
