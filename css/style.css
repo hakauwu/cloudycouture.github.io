@@ -35,7 +35,6 @@ header {
     gap: 2rem;
 }
 
-
 main {
     flex: 1;
 }
@@ -831,40 +830,49 @@ body.dark-mode {
 
 /* From Uiverse.io by Sashank02 */
 .card2 {
-    padding: 20px;
+    padding: 0;
     margin-top: 30px;
-    width: 330px;
     width: 100%;
     max-width: 700px;
-    min-height: 370px;
+    min-height: fit-content;
     border-radius: 20px;
     background: #e8e8e8;
     transition: 0.4s;
+    overflow: hidden;
 }
 
 .card2:hover {
     translate: 0 -10px;
 }
 
+.card2-title,
+.card2-body,
+.card-footer,
+.post-stats,
+.post-actions {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+
 .card2-title {
     font-size: 18px;
     font-weight: 600;
     color: teal;
-    margin: 15px 0 0 10px;
+    margin: 15px 0 10px 10px;
+    padding-top: 15px;
 }
 
 .card2-image {
     min-height: 170px;
     background-color: #c9c9c9;
-    border-radius: 15px;
-    /*box-shadow: inset 8px 8px 10px #c3c3c3,
-        inset -8px -8px 10px #cfcfcf;*/
 }
 
 .card2-body {
     margin: 13px 0 0 10px;
     color: rgb(31, 31, 31);
     font-size: 15px;
+    padding-bottom: 10px;
 }
 
 .card-footer {
@@ -872,6 +880,7 @@ body.dark-mode {
     margin: 28px 0 0 18px;
     font-size: 13px;
     color: #636363;
+    padding-bottom: 15px;
 }
 
 .by-name {
@@ -1017,6 +1026,7 @@ body.dark-mode {
   transform: translateX(100%);
   transition: transform 0.2s ease-in;
   transform-origin: center right;
+  background-color: #eee; /* Thêm màu nền khi hover */
 }
 
 .link6:hover,
@@ -1061,32 +1071,3 @@ body.dark-mode {
   width: 100%;
   opacity: 0;
 }
-
-@media (max-width: 768px) {
-    header {
-        align-items: flex-start;
-    }
-
-    .menu6 {
-        display: none
-    }
-
-    .acc-button{
-        margin-top: 35px;
-    }
-
-    .main-layout{
-        flex-direction: column;
-        padding: 40px;
-    }
-
-    .card1{
-        max-width:100%;
-    }
-
-    .card-footer{
-        margin: 0px;
-    }
-
-}
-
