@@ -1017,7 +1017,6 @@ body.dark-mode {
   transform: translateX(100%);
   transition: transform 0.2s ease-in;
   transform-origin: center right;
-  background-color: #eee; /* Thêm màu nền khi hover */
 }
 
 .link6:hover,
@@ -1088,4 +1087,5 @@ body.dark-mode {
     .card-footer{
         margin: 0px;
     }
+
 }
