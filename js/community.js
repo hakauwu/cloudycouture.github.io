@@ -9,6 +9,7 @@ import {
     doc,
     getDoc,
     updateDoc,
+    deleteDoc,
     increment,
     arrayUnion,
     arrayRemove
@@ -18,7 +19,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth
 const auth = getAuth();
 
 let currentPostId = null;
-let posts = new Map(); 
+let posts = new Map();
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -34,9 +35,9 @@ function escapeHtml(text) {
 
 function formatCommentText(text) {
     if (!text) return '';
-    
+
     let formatted = escapeHtml(text);
-    
+
     formatted = formatted
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -44,7 +45,7 @@ function formatCommentText(text) {
         .replace(/~~(.*?)~~/g, '<s>$1</s>')
         .replace(/@(\w+)/g, '<span class="mention">@$1</span>')
         .replace(/\n/g, '<br>');
-    
+
     return formatted;
 }
 
@@ -67,7 +68,7 @@ function formatDate(date) {
 async function savePostToFirestore(postData) {
     try {
         const user = auth.currentUser;
-        
+
         const docRef = await addDoc(collection(db, "newfeeds"), {
             title: postData.title,
             content: postData.content,
@@ -75,14 +76,14 @@ async function savePostToFirestore(postData) {
             authorId: user ? user.uid : null,
             imageUrl: postData.imageUrl || null,
             createdAt: serverTimestamp(),
-            likedBy: [], 
+            likedBy: [],
             comments: []
         });
 
         console.log("Document written with ID: ", docRef.id);
-        
+
         dispatchPostsUpdatedEvent();
-        
+
         return docRef;
     } catch (error) {
         console.error("Error adding document: ", error);
@@ -145,7 +146,7 @@ async function toggleLikePost(postId) {
 
         const postRef = doc(db, "newfeeds", postId);
         const postDoc = await getDoc(postRef);
-        
+
         if (!postDoc.exists()) {
             showNotification('Post not found', 'error');
             return;
@@ -154,9 +155,9 @@ async function toggleLikePost(postId) {
         const postData = postDoc.data();
         const likedBy = postData.likedBy || [];
         const userId = user.uid;
-        
+
         let isLiked;
-        
+
         if (likedBy.includes(userId)) {
             await updateDoc(postRef, {
                 likedBy: arrayRemove(userId)
@@ -168,23 +169,23 @@ async function toggleLikePost(postId) {
             });
             isLiked = true;
         }
-        
+
         const updatedPostDoc = await getDoc(postRef);
         const updatedPostData = updatedPostDoc.data();
         const updatedLikedBy = updatedPostData.likedBy || [];
-        
+
         const updatedFullPostData = {
             id: postId,
             ...updatedPostData
         };
         posts.set(postId, updatedFullPostData);
-        
+
         updateLikeButtonUI(postId, updatedLikedBy, isLiked);
-        
+
         dispatchPostsUpdatedEvent();
-        
+
         showNotification(isLiked ? 'Post liked!' : 'Post unliked!', 'success');
-        
+
     } catch (error) {
         console.error("Error toggling like:", error);
         showNotification('Failed to update like. Please try again.', 'error');
@@ -195,11 +196,11 @@ function updateLikeButtonUI(postId, likedBy, isLiked) {
     if (currentPostId === postId) {
         const likeCountSpan = document.querySelector('.comment3-react span');
         const likeButton = document.querySelector('.comment3-react button');
-        
+
         if (likeCountSpan) {
             likeCountSpan.textContent = likedBy.length;
         }
-        
+
         if (likeButton) {
             const heartIcon = likeButton.querySelector('svg path');
             if (heartIcon) {
@@ -215,7 +216,7 @@ function updateLikeButtonUI(postId, likedBy, isLiked) {
             }
         }
     }
-    
+
     const postCard = document.querySelector(`[data-post-id="${postId}"]`);
     if (postCard) {
         const likesSpan = postCard.querySelector('.post-stats span');
@@ -248,11 +249,11 @@ async function addComment(postId, commentText) {
         };
 
         const postRef = doc(db, "newfeeds", postId);
-        
+
         await updateDoc(postRef, {
             comments: arrayUnion(comment)
         });
-        
+
         const updatedPostDoc = await getDoc(postRef);
         if (updatedPostDoc.exists()) {
             const updatedPostData = {
@@ -260,19 +261,251 @@ async function addComment(postId, commentText) {
                 ...updatedPostDoc.data()
             };
             posts.set(postId, updatedPostData);
-            
+
             if (currentPostId === postId) {
                 displayPostDetail(updatedPostData);
             }
         }
-        
+
         dispatchPostsUpdatedEvent();
-        
+
         showNotification('Comment added!', 'success');
-        
+
     } catch (error) {
         console.error("Error adding comment:", error);
         showNotification('Failed to add comment. Please try again.', 'error');
+    }
+}
+
+// ============= XÓA BÀI VIẾT =============
+async function deletePost(postId) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            showNotification('Please log in to delete posts', 'warning');
+            return;
+        }
+
+        const postRef = doc(db, "newfeeds", postId);
+        const postDoc = await getDoc(postRef);
+
+        if (!postDoc.exists()) {
+            showNotification('Post not found', 'error');
+            return;
+        }
+
+        const postData = postDoc.data();
+
+        if (postData.authorId !== user.uid) {
+            showNotification('You can only delete your own posts', 'error');
+            return;
+        }
+
+        const confirmed = await showDeleteConfirmation();
+
+        if (confirmed) {
+            showLoading();
+            await deleteDoc(postRef);
+            posts.delete(postId);
+
+            if (currentPostId === postId) {
+                closePostDetail();
+            }
+
+            await loadNewfeeds();
+            hideLoading();
+            showNotification('Post deleted successfully!', 'success');
+        }
+
+    } catch (error) {
+        console.error("Error deleting post:", error);
+        hideLoading();
+        showNotification('Failed to delete post. Please try again.', 'error');
+    }
+}
+
+function showDeleteConfirmation() {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'delete-confirmation-overlay';
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            animation: fadeIn 0.3s ease-out;
+        `;
+
+        overlay.innerHTML = `
+    <div class="delete-confirmation-dialog" style="
+        background: ${isDarkMode ? '#2a2a2a' : 'white'};
+        padding: 30px;
+        border-radius: 12px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        animation: slideUp 0.3s ease-out;
+    ">
+        <div style="
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: ${isDarkMode ? 'rgba(244, 67, 54, 0.2)' : '#fee'};
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        ">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="#f44336">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+        </div>
+        <h3 style="margin: 0 0 10px; color: ${isDarkMode ? '#e0e0e0' : '#333'};">Delete Post?</h3>
+        <p style="color: ${isDarkMode ? '#aaa' : '#666'}; margin: 0 0 25px; font-size: 14px;">
+            Are you sure you want to delete this post? This action cannot be undone.
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button class="cancel-delete-btn" style="
+                padding: 10px 24px;
+                border: 1px solid ${isDarkMode ? '#555' : '#ddd'};
+                background: ${isDarkMode ? '#3a3a3a' : 'white'};
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                color: ${isDarkMode ? '#ccc' : '#666'};
+                transition: all 0.3s;
+            ">Cancel</button>
+            <button class="confirm-delete-btn" style="
+                padding: 10px 24px;
+                border: none;
+                background: #f44336;
+                color: white;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.3s;
+            ">Delete</button>
+        </div>
+    </div>
+`;
+
+        document.body.appendChild(overlay);
+
+        const cancelBtn = overlay.querySelector('.cancel-delete-btn');
+        const confirmBtn = overlay.querySelector('.confirm-delete-btn');
+
+        cancelBtn.addEventListener('click', () => {
+            overlay.remove();
+            resolve(false);
+        });
+
+        confirmBtn.addEventListener('click', () => {
+            overlay.remove();
+            resolve(true);
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                resolve(false);
+            }
+        });
+
+        cancelBtn.addEventListener('mouseenter', () => {
+            cancelBtn.style.background = isDarkMode ? '#4a4a4a' : '#f5f5f5';
+        });
+        cancelBtn.addEventListener('mouseleave', () => {
+            cancelBtn.style.background = isDarkMode ? '#3a3a3a' : 'white';
+        });
+
+        confirmBtn.addEventListener('mouseenter', () => {
+            confirmBtn.style.background = '#d32f2f';
+        });
+        confirmBtn.addEventListener('mouseleave', () => {
+            confirmBtn.style.background = '#f44336';
+        });
+    });
+}
+
+// ============= MỞ FORM CHỈNH SỬA =============
+function openEditForm(postData) {
+    const overlay = document.getElementById("overlay");
+    const postForm = document.getElementById("postForm");
+    const titleInput = document.getElementById("postTitle");
+    const contentInput = document.getElementById("postContent");
+    const imagePreview = document.getElementById("imagePreview");
+
+    titleInput.value = postData.title || '';
+    contentInput.value = postData.content || '';
+
+    if (postData.imageUrl) {
+        imagePreview.innerHTML = `<img src="${postData.imageUrl}" alt="Preview" class="image-preview">`;
+    }
+
+    postForm.setAttribute('data-edit-id', postData.id);
+
+    const formTitle = overlay.querySelector('h4');
+    const submitBtn = overlay.querySelector('.form-submit-btn');
+    formTitle.textContent = 'Edit Post';
+    submitBtn.textContent = 'Update';
+
+    overlay.style.display = "flex";
+}
+
+// ============= CẬP NHẬT BÀI VIẾT =============
+async function updatePost(postId, postData) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            showNotification('Please log in to update posts', 'warning');
+            return;
+        }
+
+        const postRef = doc(db, "newfeeds", postId);
+        const postDoc = await getDoc(postRef);
+
+        if (!postDoc.exists()) {
+            showNotification('Post not found', 'error');
+            return;
+        }
+
+        const currentData = postDoc.data();
+
+        if (currentData.authorId !== user.uid) {
+            showNotification('You can only edit your own posts', 'error');
+            return;
+        }
+
+        showLoading();
+
+        await updateDoc(postRef, {
+            title: postData.title,
+            content: postData.content,
+            imageUrl: postData.imageUrl || currentData.imageUrl,
+            updatedAt: serverTimestamp()
+        });
+
+        const updatedPostDoc = await getDoc(postRef);
+        posts.set(postId, { id: postId, ...updatedPostDoc.data() });
+
+        hidePopup();
+        hideLoading();
+        showNotification('Post updated successfully!', 'success');
+        await loadNewfeeds();
+
+    } catch (error) {
+        console.error("Error updating post:", error);
+        hideLoading();
+        showNotification('Failed to update post. Please try again.', 'error');
     }
 }
 
@@ -297,40 +530,112 @@ function renderNewfeed(postData) {
         cardHTML += `<p class="card2-title">${escapeHtml(truncatedTitle)}</p>`;
     }
 
-if (postData.content) {
-    const isMobile = window.innerWidth < 768;
-    const maxLength = isMobile ? 70 : 150;
-    const truncatedContent = postData.content.length > maxLength
-        ? postData.content.substring(0, maxLength) + '...'
-        : postData.content;
-    cardHTML += `<p class="card2-body">${escapeHtml(truncatedContent)}</p>`;
-}
-    
+    if (postData.content) {
+        const isMobile = window.innerWidth < 768;
+        const maxLength = isMobile ? 70 : 150;
+        const truncatedContent = postData.content.length > maxLength
+            ? postData.content.substring(0, maxLength) + '...'
+            : postData.content;
+        cardHTML += `<p class="card2-body">${escapeHtml(truncatedContent)}</p>`;
+    }
+
     const author = postData.author || 'Anonymous';
     const date = formatDate(postData.createdAt);
     const likes = postData.likedBy ? postData.likedBy.length : 0;
     const commentCount = postData.comments ? postData.comments.length : 0;
-    
+
+    const user = auth.currentUser;
+    const isOwner = user && postData.authorId === user.uid;
+
     cardHTML += `
         <div class="post-stats">
             <span>${likes} likes</span>
             <span>${commentCount} comments</span>
         </div>
         <p class="card-footer">Posted by <span class="by-name">${escapeHtml(author)}</span> on <span class="date">${date}</span></p>
+        ${isOwner ? `
+            <div class="post-actions" style="display: flex; gap: 8px; padding: 10px;">
+                <button class="edit-post-btn" data-post-id="${postData.id}" style="
+                    flex: 1;
+                    padding: 8px 12px;
+                    background: teal;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    font-weight: 600;
+                    transition: all 0.3s;
+                ">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="vertical-align: middle; margin-right: 4px;">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                    Edit
+                </button>
+                <button class="delete-post-btn" data-post-id="${postData.id}" style="
+                    flex: 1;
+                    padding: 8px 12px;
+                    background: #f44336;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    font-weight: 600;
+                    transition: all 0.3s;
+                ">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="vertical-align: middle; margin-right: 4px;">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        ` : ''}
     `;
 
     card.innerHTML = cardHTML;
-    
-    card.addEventListener('click', () => {
-        displayPostDetail(postData);
+
+    card.addEventListener('click', (e) => {
+        if (!e.target.closest('.edit-post-btn') && !e.target.closest('.delete-post-btn') && !e.target.closest('.post-actions')) {
+            displayPostDetail(postData);
+        }
     });
-    
+
+    if (isOwner) {
+        const editBtn = card.querySelector('.edit-post-btn');
+        const deleteBtn = card.querySelector('.delete-post-btn');
+
+        editBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openEditForm(postData);
+        });
+
+        deleteBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deletePost(postData.id);
+        });
+
+        editBtn?.addEventListener('mouseenter', () => {
+            editBtn.style.background = 'rgb(0, 97, 97)';
+        });
+        editBtn?.addEventListener('mouseleave', () => {
+            editBtn.style.background = 'teal';
+        });
+
+        deleteBtn?.addEventListener('mouseenter', () => {
+            deleteBtn.style.background = '#d32f2f';
+        });
+        deleteBtn?.addEventListener('mouseleave', () => {
+            deleteBtn.style.background = '#f44336';
+        });
+    }
+
     return card;
 }
 
 function displayPostDetail(postData) {
     currentPostId = postData.id;
-    
+
     let card3Container = document.querySelector('.card3-container');
     if (!card3Container) {
         card3Container = document.createElement('div');
@@ -411,7 +716,7 @@ function displayPostDetail(postData) {
                             </button>
                             <button type="button" onclick="formatText('italic')" title="Italic">
                                 <svg fill="none" viewBox="0 0 24 24" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-width="2.5" stroke="#707277" d="M12 4H19"></path>
+                                    <path stroke-linecap="round" stroke-width="2.5" stroke="#707277"d="M12 4H19"></path>
                                     <path stroke-linecap="round" stroke-width="2.5" stroke="#707277" d="M8 20L16 4"></path>
                                     <path stroke-linecap="round" stroke-width="2.5" stroke="#707277" d="M5 20H12"></path>
                                 </svg>
@@ -445,7 +750,7 @@ function displayPostDetail(postData) {
     `;
 
     card3Container.querySelector('.close-detail-btn').addEventListener('click', closePostDetail);
-    
+
     card3Container.addEventListener('click', (e) => {
         if (e.target === card3Container) {
             closePostDetail();
@@ -470,7 +775,7 @@ function formatText(type) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = textarea.value.substring(start, end);
-    
+
     if (!selectedText) {
         showNotification('Please select text to format', 'warning');
         return;
@@ -506,19 +811,19 @@ function addMention() {
     const cursorPos = textarea.selectionStart;
     const textBefore = textarea.value.substring(0, cursorPos);
     const textAfter = textarea.value.substring(cursorPos);
-    
+
     textarea.value = textBefore + '@username ' + textAfter;
     textarea.focus();
     textarea.setSelectionRange(cursorPos + 1, cursorPos + 9);
 }
 
-window.toggleCurrentPostLike = async function() {
+window.toggleCurrentPostLike = async function () {
     if (currentPostId) {
         await toggleLikePost(currentPostId);
     }
 };
 
-window.submitComment = async function() {
+window.submitComment = async function () {
     const textarea = document.getElementById('commentTextarea');
     if (!textarea || !currentPostId) return;
 
@@ -534,7 +839,6 @@ window.submitComment = async function() {
 
 window.formatText = formatText;
 window.addMention = addMention;
-
 window.displayPostDetail = displayPostDetail;
 
 function showLoading() {
@@ -555,12 +859,18 @@ function hidePopup() {
     const overlay = document.getElementById("overlay");
     const postForm = document.getElementById("postForm");
     const imagePreview = document.getElementById("imagePreview");
-    
+
     if (overlay) {
         overlay.style.display = "none";
     }
     if (postForm) {
         postForm.reset();
+        postForm.removeAttribute('data-edit-id');
+
+        const formTitle = overlay.querySelector('h4');
+        const submitBtn = overlay.querySelector('.form-submit-btn');
+        if (formTitle) formTitle.textContent = 'Create New Post';
+        if (submitBtn) submitBtn.textContent = 'Post';
     }
     if (imagePreview) {
         imagePreview.innerHTML = "";
@@ -672,6 +982,7 @@ function initializeFormHandler() {
         const title = formData.get('title')?.trim();
         const content = formData.get('content')?.trim();
         const imageFile = imageInput?.files[0];
+        const editId = postForm.getAttribute('data-edit-id');
 
         if (!title || !content) {
             showNotification('Please fill in all required fields.', 'error');
@@ -684,7 +995,6 @@ function initializeFormHandler() {
             const postData = {
                 title: title,
                 content: content,
-                author: auth.currentUser ? auth.currentUser.email : 'Anonymous User',
                 imageUrl: null
             };
 
@@ -694,30 +1004,40 @@ function initializeFormHandler() {
                     postData.imageUrl = e.target.result;
 
                     try {
-                        await savePostToFirestore(postData);
+                        if (editId) {
+                            await updatePost(editId, postData);
+                        } else {
+                            postData.author = auth.currentUser ? auth.currentUser.email : 'Anonymous User';
+                            await savePostToFirestore(postData);
+                        }
+                        postForm.removeAttribute('data-edit-id');
                         hidePopup();
                         hideLoading();
-                        showNotification('Post created successfully!', 'success');
                         await loadNewfeeds();
                     } catch (error) {
-                        console.error("Error creating post with image:", error);
+                        console.error("Error processing post:", error);
                         hideLoading();
-                        showNotification('Failed to create post. Please try again.', 'error');
+                        showNotification('Failed to process post. Please try again.', 'error');
                     }
                 };
                 reader.readAsDataURL(imageFile);
             } else {
-                await savePostToFirestore(postData);
+                if (editId) {
+                    await updatePost(editId, postData);
+                } else {
+                    postData.author = auth.currentUser ? auth.currentUser.email : 'Anonymous User';
+                    await savePostToFirestore(postData);
+                }
+                postForm.removeAttribute('data-edit-id');
                 hidePopup();
                 hideLoading();
-                showNotification('Post created successfully!', 'success');
                 await loadNewfeeds();
             }
 
         } catch (error) {
-            console.error("Error creating post:", error);
+            console.error("Error processing post:", error);
             hideLoading();
-            showNotification('Failed to create post. Please try again.', 'error');
+            showNotification('Failed to process post. Please try again.', 'error');
         }
     });
 }
@@ -754,7 +1074,7 @@ async function migrateLikesData() {
     try {
         const q = query(collection(db, "newfeeds"));
         const snapshot = await getDocs(q);
-        
+
         for (const docSnapshot of snapshot.docs) {
             const data = docSnapshot.data();
             if (data.likes !== undefined && !data.likedBy) {
@@ -772,13 +1092,13 @@ async function migrateLikesData() {
 
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Initializing application...");
-    
+
     initializePopupHandlers();
     initializeFormHandler();
     initializeHamburgerMenu();
-    
+
     loadNewfeeds();
-    
+
     console.log("Application initialized successfully");
 });
 
@@ -788,5 +1108,8 @@ export {
     showNotification,
     savePostToFirestore,
     displayPostDetail,
-    closePostDetail
+    closePostDetail,
+    deletePost,
+    updatePost,
+    openEditForm
 };
