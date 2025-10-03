@@ -46,7 +46,6 @@
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
         }
 
-        /* Overlay nền mờ */
         .overlay {
             display: none;
             position: fixed;
@@ -270,8 +269,6 @@
             color: var(--content-color);
         }
 
-        /* Notification Item */
-
         .notification-item {
             position: relative;
             display: flex;
@@ -285,8 +282,6 @@
             box-shadow: rgba(111, 111, 111, 0.2) 0px 8px 24px;
             background-color: var(--background-color);
             transition: all 250ms ease;
-
-            /* Background Pattern */
 
             --grid-color: rgba(225, 225, 225, 0.7);
             background-image: linear-gradient(0deg,
@@ -335,8 +330,6 @@
         .notification-item .notification-close:active svg {
             transform: scale(1.1);
         }
-
-        /* Notification Icons */
 
         .notification-item .notification-close {
             padding: 2px;
@@ -515,8 +508,6 @@
             background-color: #ff5f5f;
         }
 
-        /* Notification content */
-
         .notification-content {
             display: flex;
             justify-content: flex-start;
@@ -533,7 +524,6 @@
             cursor: pointer;
         }
 
-        /* Notification progress bar */
 
         .notification-progress-bar {
             position: absolute;
@@ -543,8 +533,6 @@
             background: var(--content-color);
             width: 100%;
             transform: translateX(100%);
-
-            /* Remove the infinite property for your website */
 
             animation: progressBar 5s linear forwards infinite;
         }
@@ -793,11 +781,9 @@
             }
         }
 
-        /* Enhanced post stats styling */
         .post-stats {
             display: flex;
             gap: 15px;
-            padding: 10px 0;
             border-top: 1px solid #f1f1f1;
             margin-top: 15px;
             font-size: 12px;
@@ -808,7 +794,6 @@
             font-weight: 600;
         }
 
-        /* Card3 container enhancements */
         .card3-container {
             backdrop-filter: blur(5px);
         }
@@ -817,12 +802,10 @@
             box-shadow: 0px 20px 50px rgba(0, 0, 0, 0.3);
         }
 
-        /* Post detail content styling */
         .post-detail-content img {
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        /* Enhanced comment styling */
         .comments-list {
             max-height: 300px;
             overflow-y: auto;
@@ -847,7 +830,6 @@
             background: #a8a8a8;
         }
 
-        /* Enhanced textarea styling */
         #commentTextarea {
             resize: vertical;
             min-height: 80px;
@@ -861,7 +843,6 @@
             border-color: #0a84ff;
         }
 
-        /* Format button enhancements */
         .formatting3 button {
             transition: all 0.2s ease;
             position: relative;
@@ -883,7 +864,6 @@
             justify-content: center;
         }
 
-        /* Send button enhancement */
         .send3 {
             background: linear-gradient(135deg, #0a84ff, #0056cc);
             transition: all 0.3s ease;
@@ -894,14 +874,12 @@
             transform: scale(1.05);
         }
 
-        /* Close button styling */
         .close-detail-btn:hover {
             color: #ff4444;
             background: rgba(255, 68, 68, 0.1);
             border-radius: 50%;
         }
 
-        /* Like button animation */
         .comment3-react button:hover {
             transform: scale(1.1);
         }
@@ -911,14 +889,12 @@
             stroke: #f5356e;
         }
 
-        /* Enhanced card2 hover effects */
         .card2:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             transition: all 0.3s ease;
         }
 
-        /* No posts message styling */
         .no-posts {
             text-align: center;
             color: #707277;
@@ -929,7 +905,6 @@
             margin: 20px 0;
         }
 
-        /* Responsive design for card3 */
         @media (max-width: 768px) {
             .card3 {
                 width: 95vw;
@@ -951,7 +926,6 @@
             }
         }
 
-        /* Animation for card3 appearance */
         .card3-container {
             animation: fadeIn 0.3s ease-out;
         }
@@ -984,12 +958,10 @@
             }
         }
 
-        /* Enhanced formatting for displayed comments */
         .comment3-content {
             line-height: 1.5;
         }
 
-        /* Style for formatted text in comments */
         .comment3-content strong {
             font-weight: bold;
         }
@@ -1006,7 +978,6 @@
             text-decoration: line-through;
         }
 
-        /* Mention styling */
         .mention {
             color: #0a84ff;
             background: rgba(10, 132, 255, 0.1);
@@ -1015,15 +986,42 @@
             font-weight: 600;
         }
 
-        /* Loading overlay for card3 */
         .card3.loading {
             opacity: 0.7;
             pointer-events: none;
         }
 
-        /* Notification positioning fix for overlay */
         .card3-container~.notification-container {
             z-index: 10001;
+        }
+
+        .card2-image {
+            width: 100%;
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .post-detail-content img {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .card2-image {
+                height: 150px;
+            }
+
+            .post-detail-content img {
+                max-height: 300px;
+            }
         }
     </style>
 </head>
@@ -1185,8 +1183,7 @@
 
                         <div class="col-md-4">
                             <div class="main-sidebar sticky-top">
-                                <h4 class="card-title2"
-                                    style="color: #333; font-size: 1.2rem; font-weight: 600;">
+                                <h4 class="card-title2" style="color: #333; font-size: 1.2rem; font-weight: 600;">
                                     Popular Posts
                                 </h4>
                                 <!-- <div class="card1" onclick="window.location.href='about.html'" style="cursor:pointer;">
